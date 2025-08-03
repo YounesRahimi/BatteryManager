@@ -16,6 +16,9 @@ logFile := A_ScriptDir "\BatteryManager.log"
 lastPowerState := ""
 lastChangeTime := 0
 isSaver := false
+oldTheme := ""
+savedDisplayConfig := ""
+displayConfigName := "PrimaryDisplayLayout"  ; Better name for saved display configuration
 
 ; Read apps and settings from config file
 configFile := A_ScriptDir . "\BatteryManager.ini"  ; Use dot for concatenation
@@ -280,7 +283,7 @@ SetBalanced() {
 ; === Helper function ===
 
 SetVisualPerformance(mode) {
-    global silentStartup
+    global silentStartup, oldTheme, savedDisplayConfig, displayConfigName
     ; Open the Performance Options dialog
     if (!silentStartup) {
      Run, C:\Windows\System32\SystemPropertiesPerformance.exe
@@ -288,12 +291,38 @@ SetVisualPerformance(mode) {
 
     ; TODO open the C:\Windows\System32\SystemPropertiesPerformance.exe
     if (mode = "best") {
+        ; Save current theme before changing
+        RegRead, currentTheme, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, AppsUseLightTheme
+        oldTheme := currentTheme ? "Light" : "Dark"
+        Log("Saved current theme: " . oldTheme)
+        
+        ; Set theme to Dark
+        RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, AppsUseLightTheme, 0
+        Log("Changed theme to Dark mode for best performance")
+        
+        ; Save current display configuration before changing
+        SaveDisplayConfig()
+        displayConfigName := "PreviousConfig"  ; Default name
+        
+        ; Change display to PC screen only for best performance
+        SetDisplayConfig("internal")
+        
         ; TODO click on  "Adjust for best performance" radio button
 
         Log("Visual Effects set to Best Performance with all animations disabled")
     } else {
         ; Restore visual effects
         ; TODO click on  "Let Windows choose what's best for my computer"  radio button
+        
+        ; Restore previous theme if it was Light
+        if (oldTheme = "Light") {
+            RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, AppsUseLightTheme, 1
+            Log("Restored theme to Light mode")
+        }
+        
+        ; Restore previous display configuration
+        RestoreDisplayConfig()
+        
         Log("Visual Effects reset to Windows defaults (Auto) with animations enabled")
     }
 
@@ -369,6 +398,94 @@ GetMonitors() {
     return monitors
 }
 
+; === Display Configuration Management ===
+SaveDisplayConfig() {
+    global savedDisplayConfig
+    
+    ; Try to determine current display setup using multiple methods
+    
+    ; Method 1: Check using DisplaySwitch.exe /query
+    RunWait, %ComSpec% /c DisplaySwitch.exe /query > "%A_Temp%\display_config.txt", , Hide
+    FileRead, currentConfig, %A_Temp%\display_config.txt
+    savedDisplayConfig := Trim(currentConfig)
+    
+    ; Method 2: If the first method fails, use WMI to detect connected displays
+    if (savedDisplayConfig = "" || ErrorLevel) {
+        try {
+            monitors := GetMonitors()
+            if (monitors.Length() > 1) {
+                ; If multiple monitors detected, assume Extended mode
+                savedDisplayConfig := "Extend"
+                Log("Multiple monitors detected, assuming Extend mode")
+            } else {
+                ; Single monitor, assume PC screen only
+                savedDisplayConfig := "PC screen only"
+                Log("Single monitor detected, assuming PC screen only mode")
+            }
+        } catch e {
+            ; If all else fails, default to "Extend" as it's the safest option
+            savedDisplayConfig := "Extend"
+            Log("Failed to detect monitor setup, defaulting to Extend mode")
+        }
+    }
+    
+    Log("Saved current display configuration: " . savedDisplayConfig)
+    return savedDisplayConfig
+}
+
+SetDisplayConfig(mode) {
+    ; Modes: internal, clone, extend, external
+    Switch mode {
+        Case "internal":
+            RunWait, %ComSpec% /c DisplaySwitch.exe /internal, , Hide  ; PC screen only
+            Log("Changed display to PC screen only mode")
+        Case "clone":
+            RunWait, %ComSpec% /c DisplaySwitch.exe /clone, , Hide     ; Duplicate
+            Log("Changed display to clone/duplicate mode")
+        Case "extend":
+            RunWait, %ComSpec% /c DisplaySwitch.exe /extend, , Hide    ; Extend
+            Log("Changed display to extend mode")
+        Case "external":
+            RunWait, %ComSpec% /c DisplaySwitch.exe /external, , Hide  ; Second screen only
+            Log("Changed display to external screen only mode")
+        Default:
+            Log("Invalid display mode requested: " . mode)
+    }
+    
+    ; Verify the command executed successfully
+    if (ErrorLevel) {
+        Log("Error executing DisplaySwitch.exe with mode: " . mode . " (Error: " . ErrorLevel . ")")
+    }
+}
+
+RestoreDisplayConfig() {
+    global savedDisplayConfig, displayConfigName
+    
+    if (savedDisplayConfig = "") {
+        Log("No saved display configuration to restore")
+        return
+    }
+    
+    ; Parse the saved configuration and set it
+    if (InStr(savedDisplayConfig, "PC screen only")) {
+        SetDisplayConfig("internal")
+    } else if (InStr(savedDisplayConfig, "Duplicate")) {
+        SetDisplayConfig("clone")
+    } else if (InStr(savedDisplayConfig, "Extend")) {
+        ; Force extend mode directly
+        RunWait, %ComSpec% /c DisplaySwitch.exe /extend, , Hide
+        Log("Forced display to extend mode")
+    } else if (InStr(savedDisplayConfig, "Second screen only")) {
+        SetDisplayConfig("external")
+    } else {
+        ; Default to extended if we can't determine
+        RunWait, %ComSpec% /c DisplaySwitch.exe /extend, , Hide
+        Log("Defaulted to extend mode")
+    }
+    
+    Log("Restored display configuration: " . displayConfigName)
+}
+
 
 ; === Add this to your script top (OnExit handler) ===
 OnExit, RestoreDefaults
@@ -384,6 +501,19 @@ RestoreDefaults:
     }
     ; Restore normal brightness
     SetBrightness(100)
+    
+    ; Ensure we restore theme if needed
+    if (oldTheme = "Light") {
+        RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, AppsUseLightTheme, 1
+        Log("Restored Light theme on exit")
+    }
+    
+    ; Restore display configuration if needed
+    if (savedDisplayConfig != "") {
+        RestoreDisplayConfig()
+        Log("Restored display configuration on exit")
+    }
+    
     ExitApp
 return
 
