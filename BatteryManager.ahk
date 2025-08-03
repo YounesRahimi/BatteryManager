@@ -3,7 +3,8 @@
 #NoEnv
 
 ; Embed icons in the executable
-FileInstall, Balanced.ico, %A_Temp%\Balanced.ico, 1
+;FileInstall, Balanced.ico, %A_Temp%\Balanced.ico, 1
+FileInstall, BatteryManager.ico, %A_Temp%\Balanced.ico, 1
 FileInstall, BatterySaver.ico, %A_Temp%\BatterySaver.ico, 1
 
 SetTimer, MonitorPower, 2000  ; Check every 2 seconds
