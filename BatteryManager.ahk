@@ -280,47 +280,24 @@ SetBalanced() {
 ; === Helper function ===
 
 SetVisualPerformance(mode) {
+    global silentStartup
+    ; Open the Performance Options dialog
+    if (!silentStartup) {
+     Run, C:\Windows\System32\SystemPropertiesPerformance.exe
+    }
+
+    ; TODO open the C:\Windows\System32\SystemPropertiesPerformance.exe
     if (mode = "best") {
-        ; Same best performance settings as before
-        DllCall("SystemParametersInfo", "UInt", 0x0048, "UInt", 0, "UInt", 0, "UInt", 3)   ; SPI_SETDRAGFULLWINDOWS
-        DllCall("SystemParametersInfo", "UInt", 0x1003, "UInt", 0, "UInt", 0, "UInt", 3)   ; SPI_SETANIMATION
-        DllCall("SystemParametersInfo", "UInt", 0x0025, "UInt", 0, "UInt", 0, "UInt", 3)   ; SPI_SETMENUSHOWDELAY
-        DllCall("SystemParametersInfo", "UInt", 0x101B, "UInt", 0, "UInt", 0, "UInt", 3)   ; SPI_SETCURSORSHADOW
-        DllCall("SystemParametersInfo", "UInt", 0x004B, "UInt", 0, "UInt", 0, "UInt", 3)   ; SPI_SETFONTSMOOTHING
+        ; TODO click on  "Adjust for best performance" radio button
 
-        RegWrite, REG_DWORD, HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects, VisualFXSetting, 2
-        RegWrite, REG_DWORD, HKCU\Software\Microsoft\Windows\DWM, EnablePeek, 0
-        RegWrite, REG_DWORD, HKCU\Software\Microsoft\Windows\DWM, AlwaysHibernateThumbnails, 0
-
-        DllCall("user32\SendMessageTimeout", "UInt", 0xFFFF, "UInt", 0x001A, "UInt", 0, "UInt", 0, "UInt", 2, "UInt", 5000, "UInt*", 0)
-
-        Log("Visual Effects set to Best Performance via direct API calls")
+        Log("Visual Effects set to Best Performance with all animations disabled")
     } else {
         ; Restore visual effects
-
-        ; SPI_SETDRAGFULLWINDOWS = 0x0025 (hex) or 37 (decimal)
-        ; Second parameter: 1 = enable, 0 = disable
-        ; "Show window contents while dragging" setting
-        DllCall("SystemParametersInfo", "UInt", 0x0025, "UInt", 1, "UInt", 0, "UInt", 3)
-
-        ; Additional visual effects
-        DllCall("SystemParametersInfo", "UInt", 0x1003, "UInt", 1, "UInt", 0, "UInt", 3)   ; SPI_SETANIMATION = 1
-        DllCall("SystemParametersInfo", "UInt", 0x0049, "UInt", 400, "UInt", 0, "UInt", 3) ; SPI_SETMENUSHOWDELAY = 400ms
-        DllCall("SystemParametersInfo", "UInt", 0x101B, "UInt", 1, "UInt", 0, "UInt", 3)   ; SPI_SETCURSORSHADOW = 1
-        DllCall("SystemParametersInfo", "UInt", 0x004B, "UInt", 1, "UInt", 0, "UInt", 3)   ; SPI_SETFONTSMOOTHING = 1
-
-        ; Set visual effects mode to "Let Windows choose"
-        RegWrite, REG_DWORD, HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects, VisualFXSetting, 0
-
-        ; Additional registry setting for window dragging
-        RegWrite, REG_SZ, HKCU\Control Panel\Desktop, DragFullWindows, 1
-
-        ; Refresh the desktop
-        DllCall("user32\SendMessageTimeout", "UInt", 0xFFFF, "UInt", 0x001A, "UInt", 0, "UInt", 0, "UInt", 2, "UInt", 5000, "UInt*", 0)
-
-        Log("Visual Effects reset to Windows defaults (Auto) via direct API calls")
-
+        ; TODO click on  "Let Windows choose what's best for my computer"  radio button
+        Log("Visual Effects reset to Windows defaults (Auto) with animations enabled")
     }
+
+        ; TODO click on  "Apply"  and then "OK" buttons.
 }
 
 MonitorPower:
