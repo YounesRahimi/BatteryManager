@@ -9,7 +9,7 @@ FileInstall, BatterySaver.ico, %A_Temp%\BatterySaver.ico, 1
 SetTimer, MonitorPower, 2000  ; Check every 2 seconds
 
 ; === CONFIG ===
-hotkeyToggle := "^!b"
+hotkeyToggle := "^!+b"
 lowBatteryThreshold := 20
 debounceTimeMs := 5000
 logFile := A_ScriptDir "\BatteryManager.log"
@@ -69,7 +69,7 @@ ToggleStartup() {
 ; === TRAY MENU ===
 Menu, Tray, NoStandard  ; Remove standard menu items
 Menu, Tray, Tip, Battery Manager
-Menu, Tray, Add, Toggle Mode (Ctrl+Alt+B), ToggleMode
+Menu, Tray, Add, Toggle Mode (Ctrl+Alt+Shift+B), ToggleMode
 ; Add startup menu item with appropriate initial text
 if (IsStartupEnabled()) {
     Menu, Tray, Add, Don't Start at Login, ToggleStartup
@@ -77,7 +77,7 @@ if (IsStartupEnabled()) {
     Menu, Tray, Add, Start at login, ToggleStartup
 }
 Menu, Tray, Add, Exit, ExitApp
-Menu, Tray, Default, Toggle Mode (Ctrl+Alt+B)
+Menu, Tray, Default, Toggle Mode (Ctrl+Alt+Shift+B)
 Menu, Tray, Click, 1
 ; Menu, Tray, Show  ; Removed to start silently
 
