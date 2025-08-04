@@ -1,5 +1,11 @@
 # Battery Manager - Release Notes
 
+# Battery Manager v0.0.3 - Release Notes
+## What's New
+### 🔋 Enhanced Power Efficiency
+- Added automatic toggling of Windows transparency effects to improve battery life
+- Transparency effects are disabled in "best" performance mode and restored in "auto" mode
+
 # Battery Manager v0.0.2 - Release Notes
 ## What's New
 ### 🔋 Improved Power Management

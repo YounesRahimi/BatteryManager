@@ -20,6 +20,7 @@ isSaver := false
 oldTheme := ""
 savedDisplayConfig := ""
 displayConfigName := "PrimaryDisplayLayout"  ; Better name for saved display configuration
+oldTransparencyEffects := ""  ; Store previous transparency effects setting
 
 ; Read apps and settings from config file
 configFile := A_ScriptDir . "\BatteryManager.ini"  ; Use dot for concatenation
@@ -284,7 +285,7 @@ SetBalanced() {
 ; === Helper function ===
 
 SetVisualPerformance(mode) {
-    global silentStartup, oldTheme, savedDisplayConfig, displayConfigName
+    global silentStartup, oldTheme, savedDisplayConfig, displayConfigName, oldTransparencyEffects
     ; Open the Performance Options dialog
     if (!silentStartup) {
      Run, C:\Windows\System32\SystemPropertiesPerformance.exe
@@ -300,6 +301,15 @@ SetVisualPerformance(mode) {
         ; Set theme to Dark
         RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, AppsUseLightTheme, 0
         Log("Changed theme to Dark mode for best performance")
+        
+        ; Save current transparency effects setting before changing
+        RegRead, currentTransparency, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, EnableTransparency
+        oldTransparencyEffects := currentTransparency
+        Log("Saved current transparency effects setting: " . (oldTransparencyEffects ? "On" : "Off"))
+        
+        ; Turn off transparency effects for best performance
+        RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, EnableTransparency, 0
+        Log("Turned off transparency effects for best performance")
         
         ; Save current display configuration before changing
         SaveDisplayConfig()
@@ -319,6 +329,12 @@ SetVisualPerformance(mode) {
         if (oldTheme = "Light") {
             RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, AppsUseLightTheme, 1
             Log("Restored theme to Light mode")
+        }
+        
+        ; Restore transparency effects if it was on
+        if (oldTransparencyEffects) {
+            RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, EnableTransparency, 1
+            Log("Restored transparency effects to On")
         }
         
         ; Restore previous display configuration
@@ -507,6 +523,12 @@ RestoreDefaults:
     if (oldTheme = "Light") {
         RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, AppsUseLightTheme, 1
         Log("Restored Light theme on exit")
+    }
+    
+    ; Ensure we restore transparency effects if needed
+    if (oldTransparencyEffects) {
+        RegWrite, REG_DWORD, HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize, EnableTransparency, 1
+        Log("Restored transparency effects on exit")
     }
     
     ; Restore display configuration if needed
